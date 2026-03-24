@@ -1,0 +1,110 @@
+name: CI CD
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths-ignore:
+      - "**.md"
+      - "LICENSE"
+      - ".gitignore"
+
+env:
+  GO_VERSION: "1.24"
+  KO_DOCKER_REPO: ${{ vars.ECR_REPOSITORY_URI }}
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+  checks: write
+  statuses: write
+  id-token: write
+
+jobs:
+  golangci-lint:
+    uses: actionsforge/actions-golangci-lint/.github/workflows/golangci-lint.yml@v0
+
+  govulncheck:
+    uses: actionsforge/actions-govulncheck/.github/workflows/govulncheck.yml@v0
+
+  test:
+    uses: actionsforge/actions-go-test/.github/workflows/go-test.yml@v0
+    with:
+      test-pattern: "./..."
+
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Check go mod tidy
+        run: |
+          go mod tidy
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "go.mod or go.sum has uncommitted changes"
+            git diff
+            exit 1
+          fi
+
+      - name: Build binary
+        run: go build -v ./cmd/waf-worker
+
+  build-and-push:
+    needs: [validate, golangci-lint, govulncheck, test]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Install ko
+        uses: ko-build/setup-ko@v0.8
+
+      - name: Compute tags
+        id: tags
+        run: |
+          SHA_TAG="$(git rev-parse --short=12 HEAD)"
+          echo "sha_tag=$SHA_TAG" >> "$GITHUB_OUTPUT"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "version_tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push by ko
+        run: |
+          if [[ -z "${KO_DOCKER_REPO}" ]]; then
+            echo "vars.ECR_REPOSITORY_URI is required"
+            exit 1
+          fi
+          ko build ./cmd/waf-worker --platform=linux/amd64,linux/arm64 --tags "${{ steps.tags.outputs.sha_tag }}" --bare
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            ko build ./cmd/waf-worker --platform=linux/amd64,linux/arm64 --tags latest --bare
+          fi
+          if [[ -n "${{ steps.tags.outputs.version_tag }}" ]]; then
+            ko build ./cmd/waf-worker --platform=linux/amd64,linux/arm64 --tags "${{ steps.tags.outputs.version_tag }}" --bare
+          fi

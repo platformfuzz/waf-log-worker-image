@@ -1,0 +1,6 @@
+defaultBaseImage: cgr.dev/chainguard/static:latest
+builds:
+  - id: waf-worker
+    main: ./cmd/waf-worker
+    ldflags:
+      - -s -w
