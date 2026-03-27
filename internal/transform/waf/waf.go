@@ -103,6 +103,58 @@ func enrichHTTPRequest(obj map[string]any, t Transformer) {
 		// embedding a full IP DB increases image size and update complexity.
 		_ = t.EnableGeoIP
 	}
+
+	if u := buildRequestURL(hr); u != "" {
+		obj["request_url"] = u
+	}
+}
+
+// headerValue returns the first matching WAF httpRequest.headers[].value (name match is case-insensitive).
+func headerValue(headers any, wantName string) string {
+	arr, ok := headers.([]any)
+	if !ok {
+		return ""
+	}
+	want := strings.ToLower(wantName)
+	for _, raw := range arr {
+		hm, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		n, _ := hm["name"].(string)
+		if strings.ToLower(strings.TrimSpace(n)) != want {
+			continue
+		}
+		v, _ := hm["value"].(string)
+		return strings.TrimSpace(v)
+	}
+	return ""
+}
+
+// buildRequestURL builds scheme://host/path?args for Loki dashboards; path-only if Host is missing.
+func buildRequestURL(hr map[string]any) string {
+	uri := strings.TrimSpace(str(hr, "uri"))
+	if uri == "" {
+		return ""
+	}
+	path := uri
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	args := strings.TrimSpace(str(hr, "args"))
+	qs := ""
+	if args != "" {
+		qs = "?" + args
+	}
+	host := headerValue(hr["headers"], "host")
+	scheme := strings.ToLower(headerValue(hr["headers"], "x-forwarded-proto"))
+	if scheme != "http" && scheme != "https" {
+		scheme = "https"
+	}
+	if host == "" {
+		return path + qs
+	}
+	return scheme + "://" + host + path + qs
 }
 
 func str(m map[string]any, key string) string {
