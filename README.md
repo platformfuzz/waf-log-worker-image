@@ -5,7 +5,7 @@ Go based reusable S3 SQS WAF log ingestion image with configurable filtering enr
 ## Runtime
 
 - Source: S3 object-created notifications delivered through SQS
-- Transform: ACL/action filtering, optional ALLOW sampling, lightweight country centroid enrichment
+- Transform: ACL/action filtering, optional ALLOW sampling, lightweight country centroid enrichment, and a top-level `request_url` (scheme + Host + path + optional query from WAF `httpRequest`, or path-only when Host is absent) for Loki/Grafana dashboards
 - Sink: Loki push with retry, backoff, and stale-entry skip handling
 
 ## Local run
