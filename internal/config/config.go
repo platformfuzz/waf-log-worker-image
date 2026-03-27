@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/platformfuzz/waf-log-worker-image/internal/health"
 )
 
 // Config stores runtime settings for the worker process.
@@ -31,6 +33,7 @@ type Config struct {
 	SampleAllowPercent                int
 	EnableGeoIP                       bool
 	EnableCountryCentroid             bool
+	HealthListenAddr                  string
 }
 
 // Load reads environment variables and returns runtime configuration.
@@ -56,6 +59,7 @@ func Load() (Config, error) {
 		SampleAllowPercent:                getEnvInt("SAMPLE_ALLOW_PERCENT", 100),
 		EnableGeoIP:                       getEnvBool("ENABLE_GEOIP", false),
 		EnableCountryCentroid:             getEnvBool("ENABLE_COUNTRY_CENTROID", true),
+		HealthListenAddr:                  health.ListenAddrFromEnv(),
 	}
 
 	if cfg.SQSQueueURL == "" {

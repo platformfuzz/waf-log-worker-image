@@ -7,6 +7,7 @@ Go based reusable S3 SQS WAF log ingestion image with configurable filtering enr
 - Source: S3 object-created notifications delivered through SQS
 - Transform: ACL/action filtering, optional ALLOW sampling, lightweight country centroid enrichment, and a top-level `request_url` (scheme + Host + path + optional query from WAF `httpRequest`, or path-only when Host is absent) for Loki/Grafana dashboards
 - Sink: Loki push with retry, backoff, and stale-entry skip handling
+- Health: standard liveness endpoint `GET`/`HEAD /healthz` → `200` (plain `ok` for `GET`) on `HEALTH_LISTEN_ADDR` (default `0.0.0.0:8080`; set `HEALTH_LISTEN_ADDR=-` to disable). The binary also supports `probe` (HTTP `GET /healthz`, exit 0 on 200) for ECS `healthCheck` on minimal images without `curl` or a shell.
 
 ## Local run
 
