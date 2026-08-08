@@ -28,7 +28,7 @@ jobs:
     uses: actionsforge/actions-golangci-lint/.github/workflows/golangci-lint.yml@v0.0.11
 
   govulncheck:
-    uses: actionsforge/actions-govulncheck/.github/workflows/govulncheck.yml@v0.0.9
+    uses: actionsforge/actions-govulncheck/.github/workflows/govulncheck.yml@v0.0.10
 
   test:
     uses: actionsforge/actions-go-test/.github/workflows/go-test.yml@v0
