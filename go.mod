@@ -3,7 +3,7 @@ module github.com/platformfuzz/waf-log-worker-image
 go 1.24
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.47.6
+	github.com/aws/aws-sdk-go-v2 v1.48.0
 	github.com/aws/aws-sdk-go-v2/config v1.33.14
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.7
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.52.9
@@ -24,5 +24,5 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.39.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.44.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.7 // indirect
-	github.com/aws/smithy-go v1.28.8 // indirect
+	github.com/aws/smithy-go v1.28.9 // indirect
 )
